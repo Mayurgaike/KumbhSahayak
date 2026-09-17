@@ -52,13 +52,62 @@ function initSockets(httpServer) {
       }
     });
 
-    // Handle authentication/room joining for admins
-    // Clients will emit 'join:admin' with their zoneId after authenticating
-    socket.on('join:admin', (payload) => {
-      const { zoneId } = payload;
-      if (zoneId) {
-        socket.join(`admin:zone_${zoneId}`);
-        logger.info('Admin joined zone room', { socketId: socket.id, zoneId });
+    // Handle authentication/room joining for AI service
+    socket.on('join:ai-service', () => {
+      socket.join('ai-service');
+      logger.info('AI Service connected and joined its room', { socketId: socket.id });
+    });
+
+    // Handle authentication/room joining for admins/volunteers
+    // Clients will emit 'join:zone' with their zoneId after authenticating
+    socket.on('join:zone', (payload) => {
+      const { zoneId, role } = payload;
+      if (zoneId && role) {
+        socket.join(`${role}:zone_${zoneId}`);
+        logger.info(`${role} joined zone room`, { socketId: socket.id, zoneId });
+      }
+    });
+
+    // Handle authentication/room joining for standard users (for raising cases)
+    socket.on('join:user', (payload) => {
+      const { userId } = payload;
+      if (userId) {
+        socket.join(`user:${userId}`);
+        logger.info('User joined personal room', { socketId: socket.id, userId });
+      }
+    });
+
+    // Handle match_found from AI service
+    socket.on('match_found', async (payload) => {
+      try {
+        const { caseId, zoneId, confidence, ts } = payload;
+        
+        const { LostPersonCase } = require('../models');
+        const lostCase = await LostPersonCase.findById(caseId);
+        
+        if (lostCase && lostCase.status === 'open') {
+          // Update case with match info
+          lostCase.matchedZone = zoneId;
+          lostCase.matchedAt = ts || new Date();
+          await lostCase.save();
+
+          // Alert nearest admins/volunteers and the case raiser
+          const alertPayload = {
+            caseId,
+            zoneId,
+            confidence,
+            timestamp: ts || new Date(),
+            message: 'Potential face match detected!'
+          };
+
+          io.to(`admin:zone_${zoneId}`).emit('alert:match', alertPayload);
+          io.to(`volunteer:zone_${zoneId}`).emit('alert:match', alertPayload);
+          io.to(`user:${lostCase.raisedBy.toString()}`).emit('alert:match', alertPayload);
+
+          logger.info('Face match detected and alerts dispatched', { caseId, zoneId });
+        }
+      } catch (err) {
+        logger.error('Error handling match_found', { error: err.message });
       }
     });
 

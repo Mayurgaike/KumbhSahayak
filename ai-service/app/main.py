@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 from camera_source import CameraSource
 from crowd_detection import CrowdDetector
+from face_matcher import FaceMatcher
 
 NODE_BACKEND_URL = os.environ.get('NODE_BACKEND_URL', 'http://localhost:5000')
 ZONE_ID = os.environ.get('ZONE_ID', 'dummy-zone-id')
@@ -25,10 +26,27 @@ sio = socketio.Client(reconnection=True, reconnection_attempts=0, reconnection_d
 
 camera = None
 is_running = True
+face_matcher = FaceMatcher()
 
 @sio.event
 def connect():
     logger.info("Connected to Node.js backend Socket.IO server")
+    sio.emit('join:ai-service')
+
+@sio.on('start_matching')
+def on_start_matching(data):
+    case_id = data.get('caseId')
+    ref_image = data.get('referenceImage')
+    if case_id and ref_image:
+        logger.info(f"Received start_matching for case {case_id}")
+        face_matcher.load_case(case_id, ref_image)
+
+@sio.on('stop_matching')
+def on_stop_matching(data):
+    case_id = data.get('caseId')
+    if case_id:
+        logger.info(f"Received stop_matching for case {case_id}")
+        face_matcher.unload_case(case_id)
 
 @sio.event
 def disconnect():
@@ -85,6 +103,18 @@ def main():
                     'ts': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
                 }
                 sio.emit('crowd:update', payload)
+            
+            # Run Face Matching (only costs CPU if active_cases is not empty)
+            matches = face_matcher.detect_faces(frame)
+            for case_id in matches:
+                if sio.connected:
+                    logger.info(f"MATCH FOUND for case {case_id} in Zone {ZONE_ID}!")
+                    sio.emit('match_found', {
+                        'caseId': case_id,
+                        'zoneId': ZONE_ID,
+                        'confidence': 95, # face_recognition boolean matches are high confidence
+                        'ts': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+                    })
         
         # Frame sampling logic: wait for the remaining time in our interval
         elapsed = time.time() - start_time

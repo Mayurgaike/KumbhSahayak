@@ -24,6 +24,7 @@ const zoneRoutes = require('./routes/zone.routes');
 const userRoutes = require('./routes/user.routes');
 const familyRoutes = require('./routes/family.routes');
 const scanRoutes = require('./routes/scan.routes');
+const caseRoutes = require('./routes/case.routes');
 const path = require('path');
 
 const app = express();
@@ -67,6 +68,7 @@ app.use('/api/zones', zoneRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/family-members', familyRoutes);
 app.use('/api/scan', scanRoutes);
+app.use('/api/lost-person-cases', caseRoutes);
 
 // 404 handler — must be after all routes, before error handler
 app.use((req, res) => {

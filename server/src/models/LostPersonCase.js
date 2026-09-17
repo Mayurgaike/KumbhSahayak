@@ -18,7 +18,7 @@ const lostPersonCaseSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['open', 'found'],
+      enum: ['open', 'found', 'expired'],
       default: 'open',
     },
     matchedZone: {
