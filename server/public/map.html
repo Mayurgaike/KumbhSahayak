@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kumbh Mela Navigation Demo</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Leaflet Routing Machine CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+
+  <style>
+    body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    #map { height: 100vh; width: 100vw; }
+    #controls {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      width: 300px;
+    }
+    h3 { margin-top: 0; font-size: 16px; color: #333; }
+    button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover { background: #0056b3; }
+    .btn-secondary { background: #28a745; }
+    .btn-secondary:hover { background: #1e7e34; }
+    .status { font-size: 14px; margin-bottom: 10px; color: #555; }
+  </style>
+</head>
+<body>
+
+<div id="controls">
+  <h3>Kumbh Mela Navigation</h3>
+  <div class="status" id="user-location-text">Simulated Location: Camp 1 (High Density)</div>
+  
+  <!-- Crowd-awareness: Simple arrow to alternative zone -->
+  <button id="btn-alternative">Find Alternative Safe Zone</button>
+  
+  <!-- Turn-by-turn routing: Only for critical facilities -->
+  <button id="btn-facility" class="btn-secondary">Navigate to Medical Camp</button>
+</div>
+
+<div id="map"></div>
+
+<!-- Socket.IO -->
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Leaflet Routing Machine JS -->
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+<script>
+  // Center of Kumbh Mela (simulated coordinates, e.g., Prayagraj)
+  const MAP_CENTER = [25.4358, 81.8463];
+  
+  const map = L.map('map').setView(MAP_CENTER, 14);
+
+  // Load OpenStreetMap tiles
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+
+  // Mock Zones Data
+  const zones = {
+    'zone_A': {
+      name: 'Zone A (Main Gate)',
+      center: [25.4400, 81.8500],
+      polygon: [
+        [25.445, 81.845], [25.445, 81.855],
+        [25.435, 81.855], [25.435, 81.845]
+      ],
+      density: 'high', // Simulated live density
+      layer: null
+    },
+    'zone_B': {
+      name: 'Zone B (Tents)',
+      center: [25.4300, 81.8400],
+      polygon: [
+        [25.435, 81.835], [25.435, 81.845],
+        [25.425, 81.845], [25.425, 81.835]
+      ],
+      density: 'low',
+      layer: null
+    }
+  };
+
+  // Facility Data
+  const medicalCamp = {
+    name: 'Medical Camp Alpha',
+    coords: [25.4320, 81.8480]
+  };
+
+  // Simulated User Location (inside Zone A)
+  const userLocation = [25.4420, 81.8480];
+  L.marker(userLocation).addTo(map).bindPopup('You are here (Zone A)').openPopup();
+
+  // Facility Marker
+  L.marker(medicalCamp.coords, {
+    icon: L.icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+      iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+    })
+  }).addTo(map).bindPopup(medicalCamp.name);
+
+  // Draw Zones
+  function getColorForDensity(density) {
+    if (density === 'high') return '#ff0000';
+    if (density === 'medium') return '#ff9900';
+    return '#00ff00';
+  }
+
+  function drawZones() {
+    for (const key in zones) {
+      if (zones[key].layer) map.removeLayer(zones[key].layer);
+      
+      zones[key].layer = L.polygon(zones[key].polygon, {
+        color: getColorForDensity(zones[key].density),
+        fillOpacity: 0.4
+      }).addTo(map).bindPopup(`${zones[key].name} - Density: ${zones[key].density}`);
+    }
+  }
+
+  drawZones();
+
+  // 1. Crowd Awareness Navigation (Simple Euclidean Line, NO pathfinding)
+  let suggestionLine = null;
+  document.getElementById('btn-alternative').addEventListener('click', () => {
+    if (suggestionLine) map.removeLayer(suggestionLine);
+    if (routingControl) { map.removeControl(routingControl); routingControl = null; }
+
+    // Find nearest safe zone
+    const targetZone = zones['zone_B']; 
+    
+    // Draw a simple straight line (crowd-awareness, not turn-by-turn)
+    suggestionLine = L.polyline([userLocation, targetZone.center], {
+      color: '#0000ff',
+      weight: 5,
+      dashArray: '10, 10'
+    }).addTo(map);
+
+    alert(`Alternative route suggested: Head towards ${targetZone.name}. This is a direct line for spatial awareness, not turn-by-turn.`);
+  });
+
+  // 2. Facility Routing (Turn-by-turn via OSRM)
+  let routingControl = null;
+  document.getElementById('btn-facility').addEventListener('click', () => {
+    if (suggestionLine) map.removeLayer(suggestionLine);
+    if (routingControl) map.removeControl(routingControl);
+
+    routingControl = L.Routing.control({
+      waypoints: [
+        L.latLng(userLocation[0], userLocation[1]),
+        L.latLng(medicalCamp.coords[0], medicalCamp.coords[1])
+      ],
+      routeWhileDragging: false,
+      addWaypoints: false,
+      lineOptions: {
+        styles: [{color: '#ff0000', opacity: 0.8, weight: 6}]
+      }
+    }).addTo(map);
+
+    alert('Turn-by-turn navigation initialized for Medical Camp (using OSRM pathfinding).');
+  });
+
+  // Live Socket.IO updates (just to show it works, no backend auth required for zone:status)
+  const socket = io();
+  socket.on('zone:status', (data) => {
+    // In a real app, match data.zoneId to our mock keys. We'll just force Zone A to high if received.
+    console.log('Received live crowd update:', data);
+  });
+
+</script>
+</body>
+</html>

@@ -17,6 +17,9 @@ router.get('/', authorize('superadmin'), zoneController.getZones);
 // POST /api/zones
 router.post('/', authorize('superadmin'), validate(createZoneSchema), zoneController.createZone);
 
+// GET /api/zones/status
+router.get('/status', authorize('superadmin', 'admin', 'volunteer', 'visitor'), zoneController.getZoneStatuses);
+
 // GET /api/zones/:zoneId
 router.get('/:zoneId', authorize('superadmin', 'admin'), zoneScopeGuard, zoneController.getZoneById);
 

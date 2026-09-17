@@ -63,6 +63,7 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../../uploads')));
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Protected routes (require auth)
 app.use('/api/zones', zoneRoutes);

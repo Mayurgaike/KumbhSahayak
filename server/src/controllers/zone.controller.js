@@ -209,6 +209,42 @@ async function getHierarchy(req, res, next) {
   }
 }
 
+/**
+ * GET /api/zones/status
+ * Get the latest density status for all zones
+ */
+async function getZoneStatuses(req, res, next) {
+  try {
+    const { CrowdLog } = require('../models');
+
+    // Group by zoneId, sort by timestamp desc, take the first one
+    const statuses = await CrowdLog.aggregate([
+      { $sort: { timestamp: -1 } },
+      {
+        $group: {
+          _id: '$zoneId',
+          peopleCount: { $first: '$peopleCount' },
+          densityLevel: { $first: '$densityLevel' },
+          timestamp: { $first: '$timestamp' },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          zoneId: '$_id',
+          peopleCount: 1,
+          densityLevel: 1,
+          timestamp: 1,
+        },
+      },
+    ]);
+
+    return res.status(200).json({ statuses });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   getZones,
   getZoneById,
@@ -217,4 +253,5 @@ module.exports = {
   deleteZone,
   updateFacilities,
   getHierarchy,
+  getZoneStatuses,
 };
