@@ -7,6 +7,11 @@ const userSchema = new mongoose.Schema(
       enum: ['visitor', 'volunteer', 'admin', 'superadmin'],
       required: [true, 'Role is required'],
     },
+    department: {
+      type: String,
+      enum: ['medical', 'police', 'general'],
+      default: 'general',
+    },
     name: {
       type: String,
       required: [true, 'Name is required'],

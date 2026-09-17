@@ -59,13 +59,22 @@ function initSockets(httpServer) {
     });
 
     // Handle authentication/room joining for admins/volunteers
-    // Clients will emit 'join:zone' with their zoneId after authenticating
+    // Clients will emit 'join:zone' with their zoneId and department after authenticating
     socket.on('join:zone', (payload) => {
-      const { zoneId, role } = payload;
+      const { zoneId, role, department } = payload;
       if (zoneId && role) {
         socket.join(`${role}:zone_${zoneId}`);
-        logger.info(`${role} joined zone room`, { socketId: socket.id, zoneId });
+        if (department) {
+          socket.join(`${role}:zone_${zoneId}:${department}`);
+        }
+        logger.info(`${role} joined zone room`, { socketId: socket.id, zoneId, department });
       }
+    });
+
+    // Handle authentication/room joining for superadmins
+    socket.on('join:superadmin', () => {
+      socket.join('superadmin');
+      logger.info('Superadmin joined global room', { socketId: socket.id });
     });
 
     // Handle authentication/room joining for standard users (for raising cases)
