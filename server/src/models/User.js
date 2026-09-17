@@ -12,6 +12,10 @@ const userSchema = new mongoose.Schema(
       enum: ['medical', 'police', 'general'],
       default: 'general',
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
     name: {
       type: String,
       required: [true, 'Name is required'],

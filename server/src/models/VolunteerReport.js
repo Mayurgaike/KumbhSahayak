@@ -2,34 +2,38 @@ const mongoose = require('mongoose');
 
 const volunteerReportSchema = new mongoose.Schema(
   {
-    volunteerId: {
+    reportedVolunteerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Volunteer ID is required'],
+      required: [true, 'Reported volunteer ID is required'],
     },
     reportedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Reported-by user is required'],
+      default: null, // Null if submitted anonymously by public
     },
-    reason: {
+    description: {
       type: String,
-      required: [true, 'Report reason is required'],
+      required: [true, 'Description is required'],
       trim: true,
+      maxlength: 1000,
     },
     status: {
       type: String,
-      enum: ['open', 'resolved', 'warned', 'deactivated'],
+      enum: ['open', 'warned', 'resolved'],
       default: 'open',
     },
+    adminNotes: {
+      type: String,
+      default: '',
+    }
   },
   {
     timestamps: true,
   }
 );
 
-// Indexes
-volunteerReportSchema.index({ volunteerId: 1 });
+volunteerReportSchema.index({ reportedVolunteerId: 1 });
 volunteerReportSchema.index({ status: 1 });
 
 const VolunteerReport = mongoose.model('VolunteerReport', volunteerReportSchema);

@@ -95,6 +95,15 @@ async function login(req, res, next) {
       });
     }
 
+    if (user.isActive === false) {
+      return res.status(403).json({
+        error: {
+          code: 'ACCOUNT_DEACTIVATED',
+          message: 'This account has been deactivated by an administrator',
+        },
+      });
+    }
+
     // Compare password
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {

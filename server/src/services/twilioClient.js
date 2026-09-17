@@ -47,6 +47,41 @@ async function sendSOSAlert(toPhone, emergencyType, zoneName) {
   }
 }
 
+/**
+ * Sends a high-density alert via SMS and WhatsApp.
+ */
+async function sendDensityAlert(toPhone, zoneName, count) {
+  const messageBody = `CRITICAL CROWD ALERT: Zone ${zoneName} has reached HIGH density (${count} people). Immediate crowd diversion protocols required.`;
+  
+  if (!client) {
+    logger.info('[MOCK TWILIO] Dispatching Density Alert', { toPhone, zoneName, messageBody, whatsapp: `whatsapp:${toPhone}` });
+    return;
+  }
+
+  try {
+    // 1. Send SMS
+    const sms = await client.messages.create({
+      body: messageBody,
+      from: TWILIO_PHONE_NUMBER,
+      to: toPhone
+    });
+    logger.info('Twilio SMS Density Alert dispatched', { sid: sms.sid, toPhone });
+
+    // 2. Send WhatsApp
+    // Requires a Twilio WhatsApp Sender to be configured in production
+    const wa = await client.messages.create({
+      body: messageBody,
+      from: `whatsapp:${TWILIO_PHONE_NUMBER}`,
+      to: `whatsapp:${toPhone}`
+    });
+    logger.info('Twilio WhatsApp Density Alert dispatched', { sid: wa.sid, toPhone });
+    
+  } catch (error) {
+    logger.error('Twilio density alert failed', { error: error.message, toPhone });
+  }
+}
+
 module.exports = {
-  sendSOSAlert
+  sendSOSAlert,
+  sendDensityAlert
 };

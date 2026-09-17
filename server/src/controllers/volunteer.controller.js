@@ -83,7 +83,89 @@ async function getTasks(req, res, next) {
   }
 }
 
+/**
+ * POST /api/volunteers/:id/report
+ * Any authenticated user (including visitors): Report a volunteer for misconduct
+ */
+async function reportVolunteer(req, res, next) {
+  try {
+    const { id } = req.params; // reportedVolunteerId
+    const { description } = req.body;
+    const reportedBy = req.user.id;
+
+    const { VolunteerReport } = require('../models');
+
+    const report = await VolunteerReport.create({
+      reportedVolunteerId: id,
+      reportedBy,
+      description
+    });
+
+    logger.info('Volunteer misconduct reported', { reportId: report._id, reportedVolunteerId: id });
+
+    return res.status(201).json({ report });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * PATCH /api/volunteers/reports/:reportId
+ * Admin/Superadmin: Resolve or warn a volunteer report
+ */
+async function updateReport(req, res, next) {
+  try {
+    const { reportId } = req.params;
+    const { status, adminNotes } = req.body;
+
+    const { VolunteerReport } = require('../models');
+
+    const report = await VolunteerReport.findById(reportId);
+    if (!report) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Report not found' } });
+    }
+
+    if (status) report.status = status;
+    if (adminNotes !== undefined) report.adminNotes = adminNotes;
+
+    await report.save();
+
+    logger.info('Volunteer report updated', { reportId: report._id, status });
+
+    return res.status(200).json({ report });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * PATCH /api/volunteers/:id/deactivate
+ * Admin/Superadmin: Deactivate a volunteer account
+ */
+async function deactivateVolunteer(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'User not found' } });
+    }
+
+    user.isActive = false;
+    await user.save();
+
+    logger.warn('Volunteer account deactivated', { volunteerId: user._id, deactivatedBy: req.user.id });
+
+    return res.status(200).json({ message: 'Account successfully deactivated', user: { id: user._id, isActive: user.isActive } });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   createVolunteer,
-  getTasks
+  getTasks,
+  reportVolunteer,
+  updateReport,
+  deactivateVolunteer
 };

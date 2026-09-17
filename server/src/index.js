@@ -27,6 +27,7 @@ const scanRoutes = require('./routes/scan.routes');
 const caseRoutes = require('./routes/case.routes');
 const sosRoutes = require('./routes/sos.routes');
 const volunteerRoutes = require('./routes/volunteer.routes');
+const analyticsRoutes = require('./routes/analytics.routes');
 const path = require('path');
 
 const app = express();
@@ -74,6 +75,7 @@ app.use('/api/scan', scanRoutes);
 app.use('/api/lost-person-cases', caseRoutes);
 app.use('/api/sos', sosRoutes);
 app.use('/api/volunteers', volunteerRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // 404 handler — must be after all routes, before error handler
 app.use((req, res) => {

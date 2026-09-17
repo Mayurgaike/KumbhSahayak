@@ -25,4 +25,24 @@ router.get(
   volunteerController.getTasks
 );
 
+// POST /api/volunteers/:id/report — Anyone can report
+router.post(
+  '/:id/report',
+  volunteerController.reportVolunteer
+);
+
+// PATCH /api/volunteers/reports/:reportId — Admin/Superadmin
+router.patch(
+  '/reports/:reportId',
+  authorize('admin', 'superadmin'),
+  volunteerController.updateReport
+);
+
+// PATCH /api/volunteers/:id/deactivate — Admin/Superadmin
+router.patch(
+  '/:id/deactivate',
+  authorize('admin', 'superadmin'),
+  volunteerController.deactivateVolunteer
+);
+
 module.exports = router;

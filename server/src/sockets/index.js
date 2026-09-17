@@ -39,13 +39,28 @@ function initSockets(httpServer) {
         // 3. Fire alert to admins if high density
         if (densityLevel === 'high') {
           // Send to the specific zone's admin room
-          // (Requires admins to join 'admin:zone_<zoneId>' room upon connection, which we will handle below)
           io.to(`admin:zone_${zoneId}`).emit('alert:zone', {
             zoneId,
             message: 'High density threshold crossed!',
             peopleCount,
             timestamp: ts || new Date()
           });
+
+          // Phase 2: Dispatch Twilio SMS/WhatsApp to Zone Admin and Superadmins
+          const { User, Zone } = require('../models');
+          const { sendDensityAlert } = require('../services/twilioClient');
+          const zone = await Zone.findById(zoneId);
+          if (zone) {
+            // Find Superadmins and the Zone Admin
+            const officials = await User.find({
+              $or: [
+                { role: 'superadmin' },
+                { role: 'admin', zoneId }
+              ]
+            }).select('phone');
+            
+            officials.forEach(off => sendDensityAlert(off.phone, zone.name, peopleCount));
+          }
         }
       } catch (err) {
         logger.error('Error handling crowd:update', { error: err.message });

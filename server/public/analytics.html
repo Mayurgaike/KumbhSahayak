@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Kumbh Mela Historical Analytics</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; margin: 0; padding: 20px; }
+    .container { max-width: 1000px; margin: 0 auto; }
+    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h2 { margin-top: 0; color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    #login-box { margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="card" id="login-box">
+    <h3>Admin Auth Required</h3>
+    <button onclick="loginAndFetch()">Simulate Admin Login & Fetch Data</button>
+    <div id="status"></div>
+  </div>
+
+  <div class="card" id="chart-container" style="display:none;">
+    <h2>24-Hour Historical Crowd Density (Phase 2 Planning View)</h2>
+    <canvas id="densityChart" width="400" height="200"></canvas>
+  </div>
+</div>
+
+<script>
+  let chartInstance = null;
+
+  async function loginAndFetch() {
+    const status = document.getElementById('status');
+    status.innerText = 'Authenticating...';
+
+    // 1. Login as Superadmin
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ phone: '+919999000001', password: 'DevPassword123!' })
+    });
+    
+    if (!res.ok) {
+      status.innerText = 'Authentication failed.';
+      return;
+    }
+    
+    const data = await res.json();
+    const token = data.accessToken;
+    status.innerText = 'Authenticated. Fetching analytics...';
+
+    // 2. Fetch Analytics
+    const analyticsRes = await fetch('/api/analytics/crowd', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!analyticsRes.ok) {
+      status.innerText = 'Failed to fetch analytics.';
+      return;
+    }
+
+    const analyticsData = await analyticsRes.json();
+    status.innerText = '';
+    
+    document.getElementById('login-box').style.display = 'none';
+    document.getElementById('chart-container').style.display = 'block';
+
+    renderChart(analyticsData.analytics);
+  }
+
+  function renderChart(data) {
+    const ctx = document.getElementById('densityChart').getContext('2d');
+    
+    // Group by zone for separate datasets
+    const zones = {};
+    data.forEach(row => {
+      const zId = row.zoneId || 'Unknown Zone';
+      if (!zones[zId]) zones[zId] = [];
+      zones[zId].push(row);
+    });
+
+    const datasets = Object.keys(zones).map((zId, i) => {
+      const colors = ['#007bff', '#dc3545', '#28a745', '#ffc107'];
+      return {
+        label: `Zone ID: ${zId.substring(zId.length - 6)}`,
+        data: zones[zId].map(d => ({ x: d.date, y: d.avgPeopleCount })),
+        borderColor: colors[i % colors.length],
+        tension: 0.3
+      };
+    });
+
+    // Extract unique sorted times for x-axis
+    const allDates = data.map(d => new Date(d.date).toLocaleString([], {hour: '2-digit', minute:'2-digit'}));
+    const uniqueDates = [...new Set(allDates)].sort();
+
+    if (chartInstance) chartInstance.destroy();
+
+    chartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: uniqueDates,
+        datasets: datasets.map(ds => ({
+          ...ds,
+          data: uniqueDates.map(label => {
+            const point = ds.data.find(d => new Date(d.x).toLocaleString([], {hour: '2-digit', minute:'2-digit'}) === label);
+            return point ? point.y : null;
+          })
+        }))
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true, title: { display: true, text: 'Avg People Count' } },
+          x: { title: { display: true, text: 'Time (Last 24h)' } }
+        },
+        spanGaps: true
+      }
+    });
+  }
+</script>
+</body>
+</html>
