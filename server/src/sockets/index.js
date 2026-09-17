@@ -120,6 +120,23 @@ function initSockets(httpServer) {
       }
     });
 
+    // Handle two-way chat notifications (Admin <-> Volunteer)
+    socket.on('chat:message', (payload) => {
+      try {
+        const { zoneId, toRole, message, senderName } = payload;
+        // Broadcast to the target role's zone room
+        const targetRoom = `${toRole}:zone_${zoneId}`;
+        io.to(targetRoom).emit('chat:message', {
+          senderName,
+          message,
+          timestamp: new Date()
+        });
+        logger.info('Chat message dispatched', { zoneId, toRole, senderName });
+      } catch (err) {
+        logger.error('Error handling chat:message', { error: err.message });
+      }
+    });
+
     socket.on('disconnect', () => {
       logger.info('Socket disconnected', { socketId: socket.id });
     });

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Volunteer Dashboard</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; margin: 0; padding: 20px; }
+    .container { max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h2 { margin-top: 0; color: #333; font-size: 18px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    .task { padding: 10px; border-left: 4px solid #007bff; background: #f9f9f9; margin-bottom: 10px; border-radius: 4px; }
+    .task.high { border-left-color: #dc3545; }
+    .chat-box { height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; background: #fafafa; }
+    .msg { margin: 5px 0; padding: 8px; border-radius: 4px; background: #e9ecef; font-size: 14px; }
+    .msg b { color: #007bff; }
+    input[type="text"] { width: calc(100% - 70px); padding: 8px; }
+    button { padding: 8px 15px; background: #007bff; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold;}
+    button:hover { background: #0056b3; }
+    .btn-danger { background: #dc3545; width: 100%; margin-top: 10px; padding: 15px; font-size: 16px; }
+    .btn-danger:hover { background: #c82333; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  
+  <!-- Left Column: Tasks -->
+  <div class="card">
+    <h2>Assigned Tasks (Zone: <span id="zone-name">...</span>)</h2>
+    <div id="task-list">Loading tasks...</div>
+  </div>
+
+  <!-- Right Column: Chat & Shortcuts -->
+  <div>
+    <div class="card">
+      <h2>Admin Comms</h2>
+      <div id="chat-box" class="chat-box"></div>
+      <div style="display: flex;">
+        <input type="text" id="chat-input" placeholder="Message Admin...">
+        <button onclick="sendChat()">Send</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+      <h2>Shortcuts</h2>
+      <button class="btn-danger" onclick="reportMassIncident()">🚨 Report Mass Incident (Stampede/Riot)</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+  let token = '';
+  let zoneId = '';
+  let volunteerName = 'Volunteer Test';
+  
+  async function init() {
+    // 1. Simulate login to get token
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ phone: '+919999000004', password: 'DevPassword123!' })
+    });
+    const data = await res.json();
+    if (data.accessToken) {
+      token = data.accessToken;
+      zoneId = data.user.zoneId;
+      volunteerName = data.user.name;
+      document.getElementById('zone-name').innerText = zoneId;
+      
+      setupSockets();
+      loadTasks();
+    } else {
+      document.getElementById('task-list').innerText = 'Authentication failed.';
+    }
+  }
+
+  // Socket.IO Setup
+  const socket = io();
+  function setupSockets() {
+    socket.emit('join:zone', { zoneId, role: 'volunteer' });
+
+    socket.on('chat:message', (payload) => {
+      const box = document.getElementById('chat-box');
+      box.innerHTML += `<div class="msg"><b>${payload.senderName}:</b> ${payload.message}</div>`;
+      box.scrollTop = box.scrollHeight;
+    });
+  }
+
+  function sendChat() {
+    const input = document.getElementById('chat-input');
+    if (!input.value) return;
+    
+    // Display our own message locally
+    const box = document.getElementById('chat-box');
+    box.innerHTML += `<div class="msg" style="background:#d4edda;"><b>Me:</b> ${input.value}</div>`;
+    box.scrollTop = box.scrollHeight;
+
+    // Send to admin
+    socket.emit('chat:message', {
+      zoneId,
+      toRole: 'admin',
+      senderName: volunteerName,
+      message: input.value
+    });
+    input.value = '';
+  }
+
+  // Load Tasks
+  async function loadTasks() {
+    const res = await fetch('/api/volunteers/tasks', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    
+    const list = document.getElementById('task-list');
+    list.innerHTML = '';
+    
+    if (data.sosCases.length === 0 && data.lostPersonCases.length === 0) {
+      list.innerHTML = '<p>No active tasks assigned.</p>';
+      return;
+    }
+
+    data.sosCases.forEach(sos => {
+      list.innerHTML += `
+        <div class="task high">
+          <strong>SOS Emergency (${sos.type.toUpperCase()})</strong><br>
+          Status: ${sos.status} | Time: ${new Date(sos.createdAt).toLocaleTimeString()}
+        </div>
+      `;
+    });
+
+    data.lostPersonCases.forEach(lpc => {
+      list.innerHTML += `
+        <div class="task">
+          <strong>Lost Person Match!</strong><br>
+          Family Member ID: ${lpc.familyMemberId._id} | Status: ${lpc.status}
+        </div>
+      `;
+    });
+  }
+
+  // Shortcut SOS
+  async function reportMassIncident() {
+    if (!confirm("Are you sure you want to trigger a Mass Incident SOS? This alerts all admins and superadmins immediately.")) return;
+    
+    const res = await fetch('/api/sos', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ type: 'mass-incident', zoneId })
+    });
+    
+    if (res.ok) alert("Mass Incident Reported Successfully!");
+    else alert("Failed to report incident.");
+  }
+
+  // Boot
+  init();
+</script>
+</body>
+</html>
