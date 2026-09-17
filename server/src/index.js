@@ -8,11 +8,14 @@
 require('dotenv').config();
 
 const express = require('express');
+const mongoose = require('mongoose');
 const helmet = require('helmet');
 const cors = require('cors');
+const http = require('http');
 const logger = require('./config/logger');
 const { connectDB, registerShutdownHandlers } = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
+const { initSockets } = require('./sockets');
 
 // Routes
 const authRoutes = require('./routes/auth.routes');
@@ -89,8 +92,11 @@ async function start() {
   // Connect to MongoDB
   await connectDB();
 
-  // Start HTTP server
-  const server = app.listen(PORT, () => {
+  // Start HTTP server + WebSockets
+  const httpServer = http.createServer(app);
+  initSockets(httpServer);
+  
+  const server = httpServer.listen(PORT, () => {
     logger.info(`Server listening on port ${PORT}`, { port: PORT });
   });
 

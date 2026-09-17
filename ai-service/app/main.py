@@ -1,0 +1,95 @@
+import os
+import time
+import signal
+import sys
+import logging
+import socketio
+from dotenv import load_dotenv
+
+# Load config from .env
+load_dotenv()
+
+# Configure Logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s info: %(message)s')
+logger = logging.getLogger(__name__)
+
+from camera_source import CameraSource
+from crowd_detection import CrowdDetector
+
+NODE_BACKEND_URL = os.environ.get('NODE_BACKEND_URL', 'http://localhost:5000')
+ZONE_ID = os.environ.get('ZONE_ID', 'dummy-zone-id')
+CAMERA_SOURCE_URL = os.environ.get('CAMERA_SOURCE', '0')
+SAMPLING_INTERVAL = float(os.environ.get('SAMPLING_INTERVAL_SECONDS', 2.0))
+
+sio = socketio.Client(reconnection=True, reconnection_attempts=0, reconnection_delay=1, reconnection_delay_max=5)
+
+camera = None
+is_running = True
+
+@sio.event
+def connect():
+    logger.info("Connected to Node.js backend Socket.IO server")
+
+@sio.event
+def disconnect():
+    logger.info("Disconnected from Node.js backend")
+
+def graceful_shutdown(signum, frame):
+    global is_running
+    logger.info("Received shutdown signal. Commencing resource cleanup...")
+    is_running = False
+    if camera:
+        camera.release()
+    if sio.connected:
+        sio.disconnect()
+    sys.exit(0)
+
+def main():
+    global camera
+    
+    # Catch SIGINT and SIGTERM for clean shutdown
+    signal.signal(signal.SIGINT, graceful_shutdown)
+    signal.signal(signal.SIGTERM, graceful_shutdown)
+    
+    # Connect to Node.js Server
+    try:
+        sio.connect(NODE_BACKEND_URL)
+    except Exception as e:
+        logger.error(f"Could not connect to backend: {e}")
+        # We will proceed anyway; Socket.IO will auto-reconnect in the background.
+
+    # Initialize AI Model
+    detector = CrowdDetector()
+    
+    # Initialize Camera
+    camera = CameraSource(CAMERA_SOURCE_URL)
+    if not camera.connect():
+        sys.exit(1)
+        
+    logger.info(f"Started crowd monitoring for Zone {ZONE_ID}. Sampling every {SAMPLING_INTERVAL}s.")
+    
+    while is_running:
+        start_time = time.time()
+        
+        frame = camera.get_frame()
+        if frame is not None:
+            count, density = detector.detect_people(frame)
+            logger.info(f"Zone {ZONE_ID} - Detected: {count} people -> Density: {density}")
+            
+            if sio.connected:
+                payload = {
+                    'zoneId': ZONE_ID,
+                    'peopleCount': count,
+                    'densityLevel': density,
+                    # We send ts as ISO format string
+                    'ts': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+                }
+                sio.emit('crowd:update', payload)
+        
+        # Frame sampling logic: wait for the remaining time in our interval
+        elapsed = time.time() - start_time
+        sleep_time = max(0, SAMPLING_INTERVAL - elapsed)
+        time.sleep(sleep_time)
+
+if __name__ == "__main__":
+    main()
