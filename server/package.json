@@ -1,0 +1,33 @@
+{
+  "name": "kumbh-mela-safety-server",
+  "version": "0.1.0",
+  "description": "Smart Kumbh Mela Safety & Assistance Platform — Node.js backend",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "seed": "node src/scripts/seed.js"
+  },
+  "keywords": [],
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.6",
+    "dotenv": "^16.4.7",
+    "express": "^5.2.1",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.9.5",
+    "multer": "^2.4.0",
+    "uuid": "^14.0.2",
+    "winston": "^3.17.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  },
+  "allowScripts": {
+    "bcrypt@5.1.1": true
+  }
+}
