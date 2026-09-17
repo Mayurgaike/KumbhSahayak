@@ -8,7 +8,11 @@ const zoneController = require('../controllers/zone.controller');
 
 const router = Router();
 
-// All routes require authentication
+// GET /api/zones/public/status
+// Fully public route for Visitor live broadcast screen
+router.get('/public/status', zoneController.getZoneStatuses);
+
+// All routes below require authentication
 router.use(authenticate);
 
 // GET /api/zones

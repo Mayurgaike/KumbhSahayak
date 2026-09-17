@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  --color-accent-gold: #B8862E;
+  --color-accent-gold-hover: #9C7126;
+  --color-brand-maroon: #5C0F1B;
+
+  /* Default Theme (Admin/Superadmin - Dark, warm) */
+  --color-bg-base: #151210;
+  --color-bg-panel: #1E1A16;
+  --color-border-color: #3A322A;
+  --color-text-primary: #EDE7DE;
+  --color-text-muted: #A99C8A;
+  --color-accent-primary: #B8862E;
+
+  --color-status-low: #3E8E5B;
+  --color-status-medium: #C98A2E;
+  --color-status-high: #B4402A;
+  --color-status-sos: #E11D48;
+  --color-status-success: #3E8E5B;
+  --color-status-neutral: #8891A0;
+
+  --font-sans: "Inter", "IBM Plex Sans", sans-serif;
+  --font-serif: "Fraunces", serif;
+  --font-mono: "IBM Plex Mono", monospace;
+}
+
+@layer base {
+  .theme-visitor {
+    /* Visitor/Volunteer Mobile-first Surface (Light, warm) */
+    --color-bg-base: #F8F3EB;
+    --color-bg-panel: #FFFFFF;
+    --color-border-color: #E4D9C8;
+    --color-text-primary: #2A211A;
+    --color-text-muted: #7A6A57;
+    --color-accent-primary: #5C0F1B; /* Wait, user requested brand-maroon or gold for buttons. Let's use gold for consistency across themes, or maroon for light buttons. Let's stick to gold for CTA, or brand-maroon for headers. Actually, let's keep accent-primary as brand-maroon for Visitor. */
+  }
+
+  body {
+    @apply font-sans antialiased bg-bg-base text-text-primary;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+  }
+
+  /* Admin headings pop more in gold against dark */
+  :root h1, :root h2, :root h3, :root h4, :root h5, :root h6 {
+    @apply text-accent-gold;
+  }
+
+  /* Visitor headings in brand maroon */
+  :root .theme-visitor h1, :root .theme-visitor h2, :root .theme-visitor h3, :root .theme-visitor h4, :root .theme-visitor h5, :root .theme-visitor h6 {
+    @apply text-brand-maroon;
+  }
+}
+
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}

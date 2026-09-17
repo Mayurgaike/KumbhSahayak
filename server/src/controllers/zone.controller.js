@@ -215,7 +215,7 @@ async function getHierarchy(req, res, next) {
  */
 async function getZoneStatuses(req, res, next) {
   try {
-    const { CrowdLog } = require('../models');
+    const { CrowdLog, Zone } = require('../models');
 
     // Group by zoneId, sort by timestamp desc, take the first one
     const statuses = await CrowdLog.aggregate([
@@ -228,18 +228,23 @@ async function getZoneStatuses(req, res, next) {
           timestamp: { $first: '$timestamp' },
         },
       },
-      {
-        $project: {
-          _id: 0,
-          zoneId: '$_id',
-          peopleCount: 1,
-          densityLevel: 1,
-          timestamp: 1,
-        },
-      },
     ]);
 
-    return res.status(200).json({ statuses });
+    // Fetch all active zones
+    const allZones = await Zone.find().select('name');
+
+    // Merge status into zone data
+    const zones = allZones.map(zone => {
+      const status = statuses.find(s => String(s._id) === String(zone._id));
+      return {
+        _id: zone._id,
+        name: zone.name,
+        currentDensity: status ? status.densityLevel : 'low',
+        currentHeadcount: status ? status.peopleCount : 0,
+      };
+    });
+
+    return res.status(200).json({ zones });
   } catch (err) {
     next(err);
   }

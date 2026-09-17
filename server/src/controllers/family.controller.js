@@ -102,8 +102,35 @@ async function issueBand(req, res, next) {
   }
 }
 
+/**
+ * GET /api/family-members/qr/:qrCode
+ * Returns basic info for a volunteer to verify before issuing a band.
+ */
+async function getFamilyMemberByQR(req, res, next) {
+  try {
+    const { qrCode } = req.params;
+    let decoded;
+    try {
+      const { verifyDigitalQR } = require('../services/qr.service');
+      decoded = verifyDigitalQR(qrCode);
+    } catch (err) {
+      return res.status(400).json({ error: { code: 'INVALID_QR', message: 'The provided QR code is invalid' } });
+    }
+
+    const familyMember = await FamilyMember.findById(decoded.id).select('name age physicalBandIssued photoUrl');
+    if (!familyMember) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Family member not found' } });
+    }
+
+    return res.status(200).json({ familyMember });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   getFamilyMembers,
   addFamilyMember,
   issueBand,
+  getFamilyMemberByQR,
 };

@@ -1,0 +1,12 @@
+23:21:04 [32minfo[39m: Starting server...
+23:21:04 [32minfo[39m: MongoDB connected successfully {"host":"localhost","name":"kumbh-mela-safety"}
+23:21:04 [32minfo[39m: Starting LostPersonCase expiry worker. Expiry window: 0 minutes.
+23:21:04 [32minfo[39m: Server listening on port 5000 {"port":5000}
+23:21:07 [32minfo[39m: Visitor registered {"userId":"6aac288bd06c88210f1becea"}
+23:21:07 [32minfo[39m: POST /api/auth/register 201 {"method":"POST","path":"/api/auth/register","status":201,"duration":"96ms"}
+23:21:07 [32minfo[39m: Family member registered {"familyMemberId":"6aac288bd06c88210f1beced","registeredBy":"6aac288bd06c88210f1becea"}
+23:21:07 [32minfo[39m: POST /api/family-members 201 {"method":"POST","path":"/api/family-members","status":201,"duration":"5ms"}
+23:21:07 [32minfo[39m: Lost person case raised and matching started {"caseId":"6aac288bd06c88210f1becf1"}
+23:21:07 [32minfo[39m: POST /api/lost-person-cases 201 {"method":"POST","path":"/api/lost-person-cases","status":201,"duration":"10ms"}
+23:22:04 [32minfo[39m: Found 1 expired cases. Marking as expired.
+23:22:12 [32minfo[39m: GET /api/lost-person-cases/6aac288bd06c88210f1becf1 200 {"method":"GET","path":"/api/lost-person-cases/6aac288bd06c88210f1becf1","status":200,"duration":"15ms"}

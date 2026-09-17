@@ -99,6 +99,7 @@ For every module, the acceptance bar is: **it runs, it does what's listed, nothi
 - [ ] `POST /api/volunteers` — admin-only creation, assigns zone + role, generates credentials
 - [ ] `GET /api/volunteers/tasks` — volunteer's assigned tasks (SOS cases, lost-person cases)
 - [ ] Volunteer dashboard: task list, zone view, two-way notifications with admin, emergency-report shortcut
+- [ ] Two-way live chat between volunteer and zone admin via `chat:message` Socket.IO rooms
 - [ ] Verify there is genuinely no self-registration path for volunteers anywhere in the client — check the route guards, not just the nav UI
 
 ## Module 10 — Phase 2 Layer (build only after MVP above is stable)
@@ -107,16 +108,6 @@ For every module, the acceptance bar is: **it runs, it does what's listed, nothi
 - [ ] Twilio SMS/WhatsApp alerts to zone + government officers on high density
 - [ ] Historical `crowdLogs` analytics/planning view
 - [ ] `POST /api/volunteers/:id/report` — public misconduct reporting by volunteer ID; admin resolve/warn/deactivate workflow
+- [ ] **Known Limitation — Phase 2:** Analytics API (`GET /api/analytics/crowd`) scales poorly on massive datasets. Materialized views/cron aggregation must be implemented before production to prevent DB OOM crashes.
 
 ---
-
-## Handoff template (copy per module)
-
-```
-Build Module <N> — <name> from MODULE_CHECKLIST.md.
-Follow ENGINEERING_STANDARDS.md for all code quality and UI/UX rules.
-Reference: Smart_Kumbh_Mela_Safety_Platform (Architecture Reference), section <X>.
-Reference: Kumbh_Mela_Agent_Build_Reference, section <Y>.
-Do not start any later module.
-When done, report: what was built, what you assumed, what's explicitly deferred, and any cleanup/leak risk you're aware of.
-```

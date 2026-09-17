@@ -49,26 +49,6 @@ async function raiseCase(req, res, next) {
 
     logger.info('Lost person case raised and matching started', { caseId: lostCase._id });
 
-    // 5. Setup auto-expiry timer
-    const timer = setTimeout(async () => {
-      try {
-        const checkCase = await LostPersonCase.findById(lostCase._id);
-        if (checkCase && checkCase.status === 'open') {
-          checkCase.status = 'expired';
-          await checkCase.save();
-          
-          io.to('ai-service').emit('stop_matching', { caseId: lostCase._id });
-          logger.info('Lost person case auto-expired', { caseId: lostCase._id });
-        }
-      } catch (err) {
-        logger.error('Error auto-expiring case', { caseId: lostCase._id, error: err.message });
-      } finally {
-        caseTimers.delete(lostCase._id.toString());
-      }
-    }, AUTO_EXPIRE_MS);
-
-    caseTimers.set(lostCase._id.toString(), timer);
-
     return res.status(201).json(lostCase);
   } catch (err) {
     next(err);
@@ -96,13 +76,6 @@ async function confirmFound(req, res, next) {
     lostCase.status = 'found';
     await lostCase.save();
 
-    // Clear server-side timer
-    const timer = caseTimers.get(id);
-    if (timer) {
-      clearTimeout(timer);
-      caseTimers.delete(id);
-    }
-
     // Command AI to stop matching
     const io = getIO();
     io.to('ai-service').emit('stop_matching', { caseId: lostCase._id });
@@ -115,7 +88,21 @@ async function confirmFound(req, res, next) {
   }
 }
 
+async function getCase(req, res, next) {
+  try {
+    const { id } = req.params;
+    const lostCase = await LostPersonCase.findById(id).populate('familyMemberId', 'name age guardianContact');
+    if (!lostCase) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Case not found' } });
+    }
+    return res.status(200).json(lostCase);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   raiseCase,
   confirmFound,
+  getCase,
 };

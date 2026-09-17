@@ -16,6 +16,7 @@ const logger = require('./config/logger');
 const { connectDB, registerShutdownHandlers } = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
 const { initSockets } = require('./sockets');
+const { startExpiryWorker } = require('./services/expiryWorker');
 
 // Routes
 const authRoutes = require('./routes/auth.routes');
@@ -103,7 +104,8 @@ async function start() {
 
   // Start HTTP server + WebSockets
   const httpServer = http.createServer(app);
-  initSockets(httpServer);
+  const io = initSockets(httpServer);
+  startExpiryWorker(io);
   
   const server = httpServer.listen(PORT, () => {
     logger.info(`Server listening on port ${PORT}`, { port: PORT });

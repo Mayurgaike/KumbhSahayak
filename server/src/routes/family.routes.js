@@ -39,4 +39,11 @@ router.post(
   familyController.issueBand
 );
 
+// GET /api/family-members/qr/:qrCode -> Get basic details from QR for band issuance
+router.get(
+  '/qr/:qrCode',
+  authorize('volunteer', 'admin', 'superadmin'),
+  familyController.getFamilyMemberByQR
+);
+
 module.exports = router;

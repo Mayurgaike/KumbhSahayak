@@ -20,4 +20,7 @@ router.post(
 // Confirm a case as found
 router.patch('/:id', caseController.confirmFound);
 
+// Get a case by ID
+router.get('/:id', caseController.getCase);
+
 module.exports = router;
