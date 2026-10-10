@@ -54,7 +54,7 @@ export default function IssueBandConfirm() {
   }
 
   return (
-    <div className="space-y-6 max-w-md mx-auto px-4 mt-6">
+    <div className="max-w-xl mx-auto pb-8">
       <div className="flex items-center gap-4 pb-4">
         <Link to="/volunteer/issue-band/scan">
           <Button variant="ghost" size="icon" className="shrink-0 text-text-muted hover:text-text-primary">

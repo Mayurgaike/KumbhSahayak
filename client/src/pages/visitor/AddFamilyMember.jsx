@@ -50,7 +50,7 @@ export default function AddFamilyMember() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-xl mx-auto pb-8">
       <div className="flex items-center gap-4 border-b border-border-color pb-4">
         <Link to="/visitor">
           <Button variant="ghost" size="icon" className="shrink-0 text-text-muted hover:text-text-primary">

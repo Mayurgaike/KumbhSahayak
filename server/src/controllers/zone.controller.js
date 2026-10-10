@@ -231,7 +231,7 @@ async function getZoneStatuses(req, res, next) {
     ]);
 
     // Fetch all active zones
-    const allZones = await Zone.find().select('name');
+    const allZones = await Zone.find().select('name boundary facilities');
 
     // Merge status into zone data
     const zones = allZones.map(zone => {
@@ -239,6 +239,8 @@ async function getZoneStatuses(req, res, next) {
       return {
         _id: zone._id,
         name: zone.name,
+        boundary: zone.boundary,
+        facilities: zone.facilities,
         currentDensity: status ? status.densityLevel : 'low',
         currentHeadcount: status ? status.peopleCount : 0,
       };

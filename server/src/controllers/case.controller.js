@@ -101,8 +101,33 @@ async function getCase(req, res, next) {
   }
 }
 
+async function getAllCases(req, res, next) {
+  try {
+    const cases = await LostPersonCase.find({ status: 'open' })
+      .populate('familyMemberId', 'name age guardianContact')
+      .populate('raisedBy', 'name phone')
+      .sort({ createdAt: -1 });
+    return res.status(200).json({ cases });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getMyCases(req, res, next) {
+  try {
+    const cases = await LostPersonCase.find({ raisedBy: req.user.id })
+      .populate('familyMemberId', 'name age guardianContact')
+      .sort({ createdAt: -1 });
+    return res.status(200).json({ cases });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   raiseCase,
   confirmFound,
   getCase,
+  getAllCases,
+  getMyCases,
 };

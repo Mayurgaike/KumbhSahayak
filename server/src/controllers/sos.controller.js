@@ -98,7 +98,22 @@ async function assignSOS(req, res, next) {
   }
 }
 
+async function getActiveSOS(req, res, next) {
+  try {
+    const sosList = await Emergency.find({ status: { $in: ['open', 'assigned'] } })
+      .populate('raisedBy', 'name phone')
+      .populate('assignedTo', 'name')
+      .populate('zoneId', 'name')
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({ sos: sosList });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   raiseSOS,
-  assignSOS
+  assignSOS,
+  getActiveSOS
 };

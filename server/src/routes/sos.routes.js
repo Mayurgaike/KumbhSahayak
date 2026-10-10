@@ -12,6 +12,19 @@ router.use(authenticate);
 // Raise an SOS
 router.post('/', validate(raiseSOSSchema), sosController.raiseSOS);
 
+// Get all active SOS (Admins / Volunteers only)
+router.get(
+  '/',
+  (req, res, next) => {
+    if (['admin', 'volunteer', 'superadmin'].includes(req.user.role)) {
+      next();
+    } else {
+      res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Only responders can view SOS' } });
+    }
+  },
+  sosController.getActiveSOS
+);
+
 // Assign an SOS to responder (Admins / Volunteers only)
 router.patch(
   '/:id/assign',

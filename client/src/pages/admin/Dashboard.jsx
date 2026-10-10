@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../../lib/api';
 import useAuthStore from '../../store/useAuthStore';
 import { socket, connectSocket, disconnectSocket, joinRoom } from '../../lib/socket';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
-import { Loader2, Users, AlertTriangle, Map } from 'lucide-react';
+import { Loader2, Users, AlertTriangle, Map, ShieldAlert, UserPlus, MessageSquare } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 const getDensityStyles = (level) => {
@@ -40,15 +41,6 @@ export default function AdminDashboard() {
     };
     
     fetchStatuses();
-
-    // Setup socket connection and authentication
-    connectSocket();
-    
-    if (user?.role === 'superadmin') {
-      joinRoom('superadmin');
-    } else if (user?.role === 'admin' && user?.zoneId) {
-      joinRoom('zone', { role: 'admin', zoneId: user.zoneId, department: 'security' });
-    }
 
     const handleZoneUpdate = (payload) => {
       setZones(prev => prev.map(zone => {
@@ -148,6 +140,50 @@ export default function AdminDashboard() {
             <p className="text-text-muted font-mono">NO ZONES DETECTED</p>
           </div>
         )}
+      </div>
+
+      <div className="mt-8 border-t border-border-color pt-6">
+        <h2 className="text-lg font-bold mb-4">Operations</h2>
+        <div className="flex flex-wrap gap-4">
+          <Link to="/admin/cases" className="bg-bg-panel border-2 border-accent-gold hover:bg-accent-gold hover:text-white transition-colors px-6 py-4 rounded-md flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5" />
+            <div className="text-left">
+              <p className="font-bold uppercase tracking-widest text-sm">Lost Persons</p>
+              <p className="text-xs opacity-80 font-mono">View Active Cases</p>
+            </div>
+          </Link>
+
+          <Link to="/admin/sos" className="bg-bg-panel border-2 border-status-sos hover:bg-status-sos hover:text-white transition-colors px-6 py-4 rounded-md flex items-center gap-3">
+            <ShieldAlert className="w-5 h-5" />
+            <div className="text-left">
+              <p className="font-bold uppercase tracking-widest text-sm">SOS Dispatch</p>
+              <p className="text-xs opacity-80 font-mono">Manage Emergencies</p>
+            </div>
+          </Link>
+          <Link to="/navigation" className="bg-bg-panel border-2 border-emerald-500 hover:bg-emerald-500 hover:text-white transition-colors px-6 py-4 rounded-md flex items-center gap-3">
+            <Map className="w-5 h-5" />
+            <div className="text-left">
+              <p className="font-bold uppercase tracking-widest text-sm">Crowd Map</p>
+              <p className="text-xs opacity-80 font-mono">Live Navigation</p>
+            </div>
+          </Link>
+
+          <Link to="/admin/provision-volunteer" className="bg-bg-panel border-2 border-accent-primary hover:bg-accent-primary hover:text-white transition-colors px-6 py-4 rounded-md flex items-center gap-3">
+            <UserPlus className="w-5 h-5" />
+            <div className="text-left">
+              <p className="font-bold uppercase tracking-widest text-sm">Provision Volunteer</p>
+              <p className="text-xs opacity-80 font-mono">Add Responders</p>
+            </div>
+          </Link>
+
+          <Link to="/admin/chat" className="bg-bg-panel border-2 border-brand-maroon hover:bg-brand-maroon hover:text-white transition-colors px-6 py-4 rounded-md flex items-center gap-3">
+            <MessageSquare className="w-5 h-5" />
+            <div className="text-left">
+              <p className="font-bold uppercase tracking-widest text-sm">Zone Comms</p>
+              <p className="text-xs opacity-80 font-mono">Chat with Volunteers</p>
+            </div>
+          </Link>
+        </div>
       </div>
     </div>
   );
